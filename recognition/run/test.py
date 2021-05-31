@@ -16,20 +16,20 @@ THRED = 0.002
 
 def main():
     # 读取对比图片的embeddings和class_name
-    f = h5py.File('./pictures/embeddings.h5', 'r')
+    f = h5py.File('../data/pictures/embeddings.h5', 'r')
     class_arr = f['class_name'][:]
     class_arr = [k.decode() for k in class_arr]
     emb_arr = f['embeddings'][:]
     cap = cv2.VideoCapture(0)
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    path = '../../detect/output'
+    path = '../data/output'
     if not os.path.exists(path):
         os.mkdir(path)
     out = cv2.VideoWriter(path + '/out.mp4', fourcc, 10, (640, 480))
     mtcnn_detector = load_align()
     with tf.Graph().as_default():
         with tf.Session() as sess:
-            load_model('../../detect/model/')
+            load_model('../data/model/')
             images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
             embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
             phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
@@ -88,7 +88,7 @@ def load_align():
     test_mode = config.test_mode
     detectors = [None, None, None]
     # 模型放置位置
-    model_path = ['./align/model/PNet/', './align/model/RNet/', './align/model/ONet']
+    model_path = ['../align/model/PNet/', '../align/model/RNet/', '../align/model/ONet']
     batch_size = config.batches
     PNet = FcnDetector(P_Net, model_path[0])
     detectors[0] = PNet

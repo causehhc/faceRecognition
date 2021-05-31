@@ -1,8 +1,3 @@
-# coding: utf-8
-
-# In[1]:
-
-
 import numpy as np
 import os
 from tqdm import tqdm
@@ -11,17 +6,14 @@ import tensorflow as tf
 from scipy import misc
 
 
-# In[2]:
-
-
 def IOU(box, boxes):
-    '''裁剪的box和图片所有人脸box的iou值
+    """裁剪的box和图片所有人脸box的iou值
     参数：
       box：裁剪的box,当box维度为4时表示box左上右下坐标，维度为5时，最后一维为box的置信度
       boxes：图片所有人脸box,[n,4]
     返回值：
       iou值，[n,]
-    '''
+    """
     # box面积
     box_area = (box[2] - box[0] + 1) * (box[3] - box[1] + 1)
     # boxes面积,[n,]
@@ -40,10 +32,8 @@ def IOU(box, boxes):
     return inter / (box_area + area - inter + 1e-10)
 
 
-# In[3]:
-
 def read_annotation(base_dir, label_path):
-    '''读取文件的image，box'''
+    """读取文件的image，box"""
     data = dict()
     images = []
     bboxes = []
@@ -79,12 +69,12 @@ def read_annotation(base_dir, label_path):
 
 
 def convert_to_square(box):
-    '''将box转换成更大的正方形
+    """将box转换成更大的正方形
     参数：
       box：预测的box,[n,5]
     返回值：
       调整后的正方形box，[n,5]
-    '''
+    """
     square_box = box.copy()
     h = box[:, 3] - box[:, 1] + 1
     w = box[:, 2] - box[:, 0] + 1
@@ -99,7 +89,7 @@ def convert_to_square(box):
 
 
 class ImageClass():
-    '''获取图片类别和路径'''
+    """获取图片类别和路径"""
 
     def __init__(self, name, image_paths):
         self.name = name
@@ -134,14 +124,14 @@ def get_image_paths(facedir):
 
 
 def split_dataset(dataset, split_ratio, min_nrof_images_per_class):
-    '''拆分训练和验证集
+    """拆分训练和验证集
     参数：
       dataset:有get_dataset生成的数据集
       split_ratio:留取验证集的比例
       min_nrof_images_per_class：一个类别中最少含有的图片数量，过少舍弃
     返回值：
       train_set,test_set:还有图片类别和路径的训练验证集
-    '''
+    """
     train_set = []
     test_set = []
     for cls in dataset:
@@ -160,7 +150,7 @@ def split_dataset(dataset, split_ratio, min_nrof_images_per_class):
 
 
 def get_image_paths_and_labels(dataset):
-    '''获取所有图像地址和类别'''
+    """获取所有图像地址和类别"""
     image_paths_flat = []
     labels_flat = []
     for i in range(len(dataset)):
@@ -170,7 +160,7 @@ def get_image_paths_and_labels(dataset):
 
 
 def create_input_pipeline(input_queue, image_size, nrof_preprocess_threads, bath_size_placeholder):
-    '''由输入队列返回图片和label的batch组合
+    """由输入队列返回图片和label的batch组合
     参数：
       input_queue:输入队列
       image_size:图片尺寸
@@ -178,7 +168,7 @@ def create_input_pipeline(input_queue, image_size, nrof_preprocess_threads, bath
       batch_size_placeholder:batch_size的placeholder
     返回值：
       image_batch,label_batch:图片和label的batch组合
-    '''
+    """
     image_and_labels_list = []
     for _ in range(nrof_preprocess_threads):
         filenames, label = input_queue.dequeue()
@@ -213,6 +203,6 @@ def create_input_pipeline(input_queue, image_size, nrof_preprocess_threads, bath
 
 
 def random_rotate_image(image):
-    '''随机翻转图片'''
+    """随机翻转图片"""
     angle = np.random.uniform(low=-10.0, high=10.0)
     return misc.imrotate(image, angle, 'bicubic')
