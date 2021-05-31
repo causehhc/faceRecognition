@@ -189,7 +189,10 @@ def create_input_pipeline(input_queue, image_size, nrof_preprocess_threads, bath
                             lambda: tf.image.random_flip_left_right(image),
                             lambda: tf.identity(image))
             # 图像归一到[-1,1]内
+            # TODO
             image = tf.cast(image, tf.float32) - 127.5 / 128.0
+            # image = (tf.cast(image, tf.float32) - 127.5) / 128.0  # 需要重新训练
+
             image.set_shape(image_size + (3,))
             images.append(image)
         image_and_labels_list.append([images, label])

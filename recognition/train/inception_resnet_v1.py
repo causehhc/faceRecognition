@@ -135,7 +135,7 @@ def inception_resnet_v1(inputs, is_training=True,
                         bottleneck_layer_size=128,
                         reuse=None,
                         scope='InceptionResnetV1'):
-    """创建 Inception Resnet V1 model.
+    """创建 Inception Resnet V1 model_origin.
     参数:
       inputs: 输入图像 [batch_size, height, width, 3].
       num_classes: 预测类别数量.

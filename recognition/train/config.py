@@ -1,9 +1,9 @@
 # 输入图像大小
 image_size = 160
 # graph存储位置
-graph_dir = '../graph/'
+graph_dir = '../data/graph/'
 # 模型存储位置
-model_dir = '../model/'
+model_dir = '../data/model/'
 # 验证集所占比例
 validation_set_split_ratio = 0.05
 # 一个类别至少含有图片数量

@@ -220,7 +220,7 @@ def main():
                         loss_, _, step_, lr_, prelogits_, cross_entropy_mean_, accuracy_, center_loss_, summary_str = sess.run(
                             tensor_list + [summary_op], feed_dict=feed_dict)
                         train_writer.add_summary(summary_str, global_step=step_)
-                        saver.save(sess=sess, save_path=config.model_dir + 'model.ckpt', global_step=(step_))
+                        saver.save(sess=sess, save_path=config.model_dir + 'model_origin.ckpt', global_step=(step_))
                         print('epoch:%d/%d' % (epoch, config.max_nrof_epochs))
                         print(
                             "Step: %d/%d, accuracy: %3f, center loss: %4f, cross loss: %4f, Total Loss: %4f ,lr:%f " % (

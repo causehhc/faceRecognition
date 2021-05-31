@@ -79,8 +79,10 @@ def align_face(path='../data/pictures/'):
                 bb = [int(max(det[0], 0)), int(max(det[1], 0)), int(min(det[2], img_size[1])),
                       int(min(det[3], img_size[0]))]
                 cropped = img[bb[1]:bb[3], bb[0]:bb[2], :]
-
+                # TODO
                 scaled = cv2.resize(cropped, (160, 160), interpolation=cv2.INTER_LINEAR) - 127.5 / 128.0
+                # scaled = (cv2.resize(cropped, (160, 160), interpolation=cv2.INTER_LINEAR) - 127.5) / 128.0  # 需要重新训练
+
                 scaled_arr.append(scaled)
                 class_names_arr.append(class_name)
 
@@ -91,7 +93,7 @@ def align_face(path='../data/pictures/'):
     return scaled_arr, class_names_arr
 
 
-def main():
+def main(model_origin_flag=False):
     path = '../data/pictures/embeddings.h5'
     if os.path.exists(path):
         print('生成完了别再瞎费劲了！！！')
@@ -99,7 +101,10 @@ def main():
     img_arr, class_arr = align_face()
     with tf.Graph().as_default():
         with tf.Session() as sess:
-            load_model('../data/model/')
+            if model_origin_flag:
+                load_model('../data/model_origin/')
+            else:
+                load_model('../data/model/')
             images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
             embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
             phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
@@ -116,4 +121,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(model_origin_flag=True)

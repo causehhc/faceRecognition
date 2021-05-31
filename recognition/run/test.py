@@ -39,7 +39,10 @@ def align_face(img, mtcnn_detector):
             bb_arr.append([bb[0], bb[1]])
             cropped = img[bb[1]:bb[3], bb[0]:bb[2], :]
             scaled = cv2.resize(cropped, (160, 160), interpolation=cv2.INTER_LINEAR)
+            # TODO
             scaled = cv2.cvtColor(scaled, cv2.COLOR_BGR2RGB) - 127.5 / 128.0
+            # scaled = (cv2.cvtColor(scaled, cv2.COLOR_BGR2RGB) - 127.5) / 128.0  # 需要重新训练
+
             scaled_arr.append(scaled)
         scaled_arr = np.array(scaled_arr)
         return img, scaled_arr, bb_arr
@@ -73,7 +76,7 @@ def load_align():
     return mtcnn_detector
 
 
-def main():
+def main(model_origin_flag=False):
     # 读取对比图片的embeddings和class_name
     f = h5py.File('../data/pictures/embeddings.h5', 'r')
     class_arr = f['class_name'][:]
@@ -88,7 +91,10 @@ def main():
     mtcnn_detector = load_align()
     with tf.Graph().as_default():
         with tf.Session() as sess:
-            load_model('../data/model/')
+            if model_origin_flag:
+                load_model('../data/model_origin/')
+            else:
+                load_model('../data/model/')
             images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
             embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
             phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
@@ -141,4 +147,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(model_origin_flag=True)
