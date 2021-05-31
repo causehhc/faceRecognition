@@ -1,8 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import sys
 import os
-import copy
 
 from recognition.align.MtcnnDetector import MtcnnDetector
 from recognition.align.detector import Detector
@@ -21,14 +19,14 @@ def load_model(model_dir, input_map=None):
     saver.restore(tf.get_default_session(), ckpt.model_checkpoint_path)
 
 
-def align_face(path='../data/pictures/'):
+def align_face(path='./pictures/'):
     thresh = config.thresh
     min_face_size = config.min_face
     stride = config.stride
     test_mode = config.test_mode
     detectors = [None, None, None]
     # 模型放置位置
-    model_path = ['../align/model/PNet/', '../align/model/RNet/', '../align/model/ONet']
+    model_path = ['./align/model/PNet/', './align/model/RNet/', './align/model/ONet']
     batch_size = config.batches
     PNet = FcnDetector(P_Net, model_path[0])
     detectors[0] = PNet
@@ -55,7 +53,7 @@ def align_face(path='../data/pictures/'):
     for image_path, class_name in zip(img_paths, class_names):
 
         img = cv2.imread(image_path)
-        # cv2.imshow('', img)
+        # cv2.imshow('',img)
         # cv2.waitKey(0)
         try:
             boxes_c, _ = mtcnn_detector.detect(img)
@@ -94,14 +92,14 @@ def align_face(path='../data/pictures/'):
 
 
 def main():
-    path = '../data/pictures/embeddings.h5'
+    path = './pictures/embeddings.h5'
     if os.path.exists(path):
         print('生成完了别再瞎费劲了！！！')
         return
     img_arr, class_arr = align_face()
     with tf.Graph().as_default():
         with tf.Session() as sess:
-            load_model('../data/model/')
+            load_model('../../detect/model/')
             images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
             embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
             phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
@@ -110,7 +108,7 @@ def main():
             # 前向传播计算embeddings
             feed_dict = {images_placeholder: img_arr, phase_train_placeholder: False, keep_probability_placeholder: 1.0}
             embs = sess.run(embeddings, feed_dict=feed_dict)
-    f = h5py.File('../data/pictures/embeddings.h5', 'w')
+    f = h5py.File('./pictures/embeddings.h5', 'w')
     class_arr = [i.encode() for i in class_arr]
     f.create_dataset('class_name', data=class_arr)
     f.create_dataset('embeddings', data=embs)

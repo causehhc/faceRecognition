@@ -1,13 +1,22 @@
+# coding: utf-8
+
+# In[3]:
+
+
 import cv2
 import numpy as np
 import sys
-# from utils import *
+
+from utils import *
 from tqdm import tqdm
-from recognition.align.utils import convert_to_square
+
+
+# In[4]:
+from align.utils import convert_to_square
 
 
 def py_nms(dets, thresh):
-    """剔除太相似的box"""
+    '''剔除太相似的box'''
     x1 = dets[:, 0]
     y1 = dets[:, 1]
     x2 = dets[:, 2]
@@ -40,8 +49,11 @@ def py_nms(dets, thresh):
     return keep
 
 
+# In[ ]:
+
+
 class MtcnnDetector:
-    """来生成人脸的图像"""
+    '''来生成人脸的图像'''
 
     def __init__(self, detectors,
                  min_face_size=20,
@@ -96,11 +108,10 @@ class MtcnnDetector:
         return all_boxes, landmarks
 
     def detect_pnet(self, im):
-        """
-        通过pnet筛选box和landmark
+        '''通过pnet筛选box和landmark
         参数：
           im:输入图像[h,2,3]
-        """
+        '''
         h, w, c = im.shape
         net_size = 12
         # 人脸和输入图像的比率
@@ -144,14 +155,13 @@ class MtcnnDetector:
         return boxes, boxes_c, None
 
     def detect_rnet(self, im, dets):
-        """
-        通过rent选择box
+        '''通过rent选择box
         参数：
           im：输入图像
           dets:pnet选择的box，是相对原图的绝对坐标
         返回值：
           box绝对坐标
-        """
+        '''
         h, w, c = im.shape
         # 将pnet的box变成包含它的正方形，可以避免信息损失
         dets = convert_to_square(dets)
@@ -190,7 +200,7 @@ class MtcnnDetector:
         return boxes, boxes_c, None
 
     def detect_onet(self, im, dets):
-        """将onet的选框继续筛选基本和rnet差不多但多返回了landmark"""
+        '''将onet的选框继续筛选基本和rnet差不多但多返回了landmark'''
         h, w, c = im.shape
         dets = convert_to_square(dets)
         dets[:, 0:4] = np.round(dets[:, 0:4])
@@ -229,7 +239,8 @@ class MtcnnDetector:
         return boxes, boxes_c, landmark
 
     def processed_image(self, img, scale):
-        """预处理数据，转化图像尺度并对像素归一到[-1,1]"""
+        '''预处理数据，转化图像尺度并对像素归一到[-1,1]
+        '''
         height, width, channels = img.shape
         new_height = int(height * scale)
         new_width = int(width * scale)
@@ -239,7 +250,9 @@ class MtcnnDetector:
         return img_resized
 
     def generate_bbox(self, cls_map, reg, scale, threshold):
-        """得到对应原图的box坐标，分类分数，box偏移量"""
+        """
+         得到对应原图的box坐标，分类分数，box偏移量
+        """
         # pnet大致将图像size缩小2倍
         stride = 2
 
@@ -267,8 +280,7 @@ class MtcnnDetector:
         return boundingbox.T
 
     def pad(self, bboxes, w, h):
-        """
-        将超出图像的box进行处理
+        '''将超出图像的box进行处理
         参数：
           bboxes:人脸框
           w,h:图像长宽
@@ -278,7 +290,7 @@ class MtcnnDetector:
           y, x : 调整后的box在原图上左上角的坐标
           ex, ex : 调整后的box在原图上右下角的坐标
           tmph, tmpw: 原始box的长宽
-        """
+        '''
         # box的长宽
         tmpw, tmph = bboxes[:, 2] - bboxes[:, 0] + 1, bboxes[:, 3] - bboxes[:, 1] + 1
         num_box = bboxes.shape[0]
@@ -312,15 +324,14 @@ class MtcnnDetector:
         return return_list
 
     def calibrate_box(self, bbox, reg):
-        """
-        校准box
+        '''校准box
         参数：
           bbox:pnet生成的box
 
           reg:rnet生成的box偏移值
         返回值：
           调整后的box是针对原图的绝对坐标
-        """
+        '''
 
         bbox_c = bbox.copy()
         w = bbox[:, 2] - bbox[:, 0] + 1
@@ -333,7 +344,7 @@ class MtcnnDetector:
         return bbox_c
 
     def detect(self, img):
-        """用于测试当个图像的"""
+        '''用于测试当个图像的'''
         boxes = None
 
         # pnet

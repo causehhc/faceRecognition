@@ -1,8 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import sys
 import os
-import copy
 from embeddings import load_model
 from recognition.align.MtcnnDetector import MtcnnDetector
 from recognition.align.detector import Detector
@@ -16,81 +14,22 @@ import h5py
 THRED = 0.002
 
 
-def align_face(img, mtcnn_detector):
-    try:
-        boxes_c, _ = mtcnn_detector.detect(img)
-    except:
-        print('找不到脸')
-        return None, None, None
-    # 人脸框数量
-    num_box = boxes_c.shape[0]
-    bb_arr = []
-    scaled_arr = []
-    if num_box > 0:
-        det = boxes_c[:, :4]
-        det_arr = []
-        img_size = np.asarray(img.shape)[:2]
-        for i in range(num_box):
-            det_arr.append(np.squeeze(det[i]))
-
-        for i, det in enumerate(det_arr):
-            det = np.squeeze(det)
-            bb = [int(max(det[0], 0)), int(max(det[1], 0)), int(min(det[2], img_size[1])),
-                  int(min(det[3], img_size[0]))]
-            cv2.rectangle(img, (bb[0], bb[1]), (bb[2], bb[3]), (0, 255, 0), 2)
-            bb_arr.append([bb[0], bb[1]])
-            cropped = img[bb[1]:bb[3], bb[0]:bb[2], :]
-            scaled = cv2.resize(cropped, (160, 160), interpolation=cv2.INTER_LINEAR)
-            scaled = cv2.cvtColor(scaled, cv2.COLOR_BGR2RGB) - 127.5 / 128.0
-            scaled_arr.append(scaled)
-        scaled_arr = np.array(scaled_arr)
-        return img, scaled_arr, bb_arr
-    else:
-        print('找不到脸 ')
-        return None, None, None
-
-
-def load_align():
-    thresh = config.thresh
-    min_face_size = config.min_face
-    stride = config.stride
-    test_mode = config.test_mode
-    detectors = [None, None, None]
-    # 模型放置位置
-    model_path = ['../align/model/PNet/', '../align/model/RNet/', '../align/model/ONet']
-    batch_size = config.batches
-    PNet = FcnDetector(P_Net, model_path[0])
-    detectors[0] = PNet
-
-    if test_mode in ["RNet", "ONet"]:
-        RNet = Detector(R_Net, 24, batch_size[1], model_path[1])
-        detectors[1] = RNet
-
-    if test_mode == "ONet":
-        ONet = Detector(O_Net, 48, batch_size[2], model_path[2])
-        detectors[2] = ONet
-
-    mtcnn_detector = MtcnnDetector(detectors=detectors, min_face_size=min_face_size,
-                                   stride=stride, threshold=thresh)
-    return mtcnn_detector
-
-
 def main():
     # 读取对比图片的embeddings和class_name
-    f = h5py.File('../data/pictures/embeddings.h5', 'r')
+    f = h5py.File('./pictures/embeddings.h5', 'r')
     class_arr = f['class_name'][:]
     class_arr = [k.decode() for k in class_arr]
     emb_arr = f['embeddings'][:]
     cap = cv2.VideoCapture(0)
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    path = '../data/output'
+    path = '../../detect/output'
     if not os.path.exists(path):
         os.mkdir(path)
     out = cv2.VideoWriter(path + '/out.mp4', fourcc, 10, (640, 480))
     mtcnn_detector = load_align()
     with tf.Graph().as_default():
         with tf.Session() as sess:
-            load_model('../data/model/')
+            load_model('../../detect/model/')
             images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
             embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
             phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
@@ -140,6 +79,65 @@ def main():
             cap.release()
             out.release()
             cv2.destroyAllWindows()
+
+
+def load_align():
+    thresh = config.thresh
+    min_face_size = config.min_face
+    stride = config.stride
+    test_mode = config.test_mode
+    detectors = [None, None, None]
+    # 模型放置位置
+    model_path = ['./align/model/PNet/', './align/model/RNet/', './align/model/ONet']
+    batch_size = config.batches
+    PNet = FcnDetector(P_Net, model_path[0])
+    detectors[0] = PNet
+
+    if test_mode in ["RNet", "ONet"]:
+        RNet = Detector(R_Net, 24, batch_size[1], model_path[1])
+        detectors[1] = RNet
+
+    if test_mode == "ONet":
+        ONet = Detector(O_Net, 48, batch_size[2], model_path[2])
+        detectors[2] = ONet
+
+    mtcnn_detector = MtcnnDetector(detectors=detectors, min_face_size=min_face_size,
+                                   stride=stride, threshold=thresh)
+    return mtcnn_detector
+
+
+def align_face(img, mtcnn_detector):
+    try:
+        boxes_c, _ = mtcnn_detector.detect(img)
+    except:
+        print('找不到脸')
+        return None, None, None
+    # 人脸框数量
+    num_box = boxes_c.shape[0]
+    bb_arr = []
+    scaled_arr = []
+    if num_box > 0:
+        det = boxes_c[:, :4]
+        det_arr = []
+        img_size = np.asarray(img.shape)[:2]
+        for i in range(num_box):
+            det_arr.append(np.squeeze(det[i]))
+
+        for i, det in enumerate(det_arr):
+            det = np.squeeze(det)
+            bb = [int(max(det[0], 0)), int(max(det[1], 0)), int(min(det[2], img_size[1])),
+                  int(min(det[3], img_size[0]))]
+            cv2.rectangle(img, (bb[0], bb[1]), (bb[2], bb[3]), (0, 255, 0), 2)
+            bb_arr.append([bb[0], bb[1]])
+            cropped = img[bb[1]:bb[3], bb[0]:bb[2], :]
+            scaled = cv2.resize(cropped, (160, 160), interpolation=cv2.INTER_LINEAR)
+            scaled = cv2.cvtColor(scaled, cv2.COLOR_BGR2RGB) - 127.5 / 128.0
+            scaled_arr.append(scaled)
+        scaled_arr = np.array(scaled_arr)
+        return img, scaled_arr, bb_arr
+    else:
+        print('找不到脸 ')
+        return None, None, None
 
 
 if __name__ == '__main__':
