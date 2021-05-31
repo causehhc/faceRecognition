@@ -10,6 +10,68 @@ from recognition.align.utils import *
 slim = tf.contrib.slim
 
 
+def optimize(total_loss, global_step, learning_rate, moving_average_decay, update_gradient_vars):
+    """优化参数
+    参数：
+      total_loss:总损失函数
+      global_step：全局step数
+      learning_rate:学习率
+      moving_average_decay：指数平均参数
+      update_gradient_vars：需更新的参数
+    返回值：
+      train_op
+    """
+
+    opt = tf.train.AdamOptimizer(learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1)
+    # 梯度计算
+    grads = opt.compute_gradients(total_loss, update_gradient_vars)
+    # 应用更新的梯度
+    apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
+    # 参数和梯度分布图
+    for var in tf.trainable_variables():
+        tf.summary.histogram(var.op.name, var)
+
+    for grad, var in grads:
+        if grad is not None:
+            tf.summary.histogram(var.op.name + '/gradients', grad)
+    # 指数平均
+    variable_averages = tf.train.ExponentialMovingAverage(moving_average_decay, global_step)
+    variables_averages_op = variable_averages.apply(tf.trainable_variables())
+
+    with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
+        train_op = tf.no_op(name='train')
+    return train_op
+
+
+def center_loss(features, label, alfa, nrof_classes):
+    """计算centerloss
+    参数：
+      features:网络最终输出[batch,512]
+      label:对应类别[batch,1]
+      alfa:center更新比例
+      nrof_classes:类别总数
+    返回值：
+      loss:center_loss损失值
+      centers:中心点embeddings
+    """
+    # embedding的维度
+    nrof_features = features.get_shape()[1]
+    centers = tf.get_variable('centers', [nrof_classes, nrof_features],
+                              dtype=tf.float32,
+                              initializer=tf.constant_initializer(0),
+                              trainable=False)
+    label = tf.reshape(label, [-1])
+    # 挑选出每个batch对应的centers [batch,nrof_features]
+    centers_batch = tf.gather(centers, label)
+    diff = (1 - alfa) * (centers_batch - features)
+    # 相同类别会累计相减
+    centers = tf.scatter_sub(centers, label, diff)
+    # 先更新完centers在计算loss
+    with tf.control_dependencies([centers]):
+        loss = tf.reduce_mean(tf.square(features - centers_batch))
+    return loss, centers
+
+
 def main():
     image_size = (config.image_size, config.image_size)
     # 创建graph和model存放目录
@@ -204,68 +266,6 @@ def main():
                 print('到这了！')
                 print("val: accuracy: %3f, center loss: %4f, cross loss: %4f, Total Loss: %4f " % (
                     accuracy_val_mean, center_loss_val_mean, cross_entropy_mean_val_mean, loss_val_mean))
-
-
-def center_loss(features, label, alfa, nrof_classes):
-    """计算centerloss
-    参数：
-      features:网络最终输出[batch,512]
-      label:对应类别[batch,1]
-      alfa:center更新比例
-      nrof_classes:类别总数
-    返回值：
-      loss:center_loss损失值
-      centers:中心点embeddings
-    """
-    # embedding的维度
-    nrof_features = features.get_shape()[1]
-    centers = tf.get_variable('centers', [nrof_classes, nrof_features],
-                              dtype=tf.float32,
-                              initializer=tf.constant_initializer(0),
-                              trainable=False)
-    label = tf.reshape(label, [-1])
-    # 挑选出每个batch对应的centers [batch,nrof_features]
-    centers_batch = tf.gather(centers, label)
-    diff = (1 - alfa) * (centers_batch - features)
-    # 相同类别会累计相减
-    centers = tf.scatter_sub(centers, label, diff)
-    # 先更新完centers在计算loss
-    with tf.control_dependencies([centers]):
-        loss = tf.reduce_mean(tf.square(features - centers_batch))
-    return loss, centers
-
-
-def optimize(total_loss, global_step, learning_rate, moving_average_decay, update_gradient_vars):
-    """优化参数
-    参数：
-      total_loss:总损失函数
-      global_step：全局step数
-      learning_rate:学习率
-      moving_average_decay：指数平均参数
-      update_gradient_vars：需更新的参数
-    返回值：
-      train_op
-    """
-
-    opt = tf.train.AdamOptimizer(learning_rate, beta1=0.9, beta2=0.999, epsilon=0.1)
-    # 梯度计算
-    grads = opt.compute_gradients(total_loss, update_gradient_vars)
-    # 应用更新的梯度
-    apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
-    # 参数和梯度分布图
-    for var in tf.trainable_variables():
-        tf.summary.histogram(var.op.name, var)
-
-    for grad, var in grads:
-        if grad is not None:
-            tf.summary.histogram(var.op.name + '/gradients', grad)
-    # 指数平均
-    variable_averages = tf.train.ExponentialMovingAverage(moving_average_decay, global_step)
-    variables_averages_op = variable_averages.apply(tf.trainable_variables())
-
-    with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
-        train_op = tf.no_op(name='train')
-    return train_op
 
 
 if __name__ == '__main__':
