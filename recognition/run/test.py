@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import os
-from embeddings import load_model
+from recognition.run.embeddings import load_model
 from recognition.align.MtcnnDetector import MtcnnDetector
 from recognition.align.detector import Detector
 from recognition.align.fcn_detector import FcnDetector
@@ -10,8 +10,34 @@ import recognition.align.config as config
 import cv2
 import h5py
 
-# 识别人脸阈值
-THRED = 0.002
+
+def load_align(path_root):
+    thresh = config.thresh
+    min_face_size = config.min_face
+    stride = config.stride
+    test_mode = config.test_mode
+    detectors = [None, None, None]
+    # 模型放置位置
+    model_path = [
+        '{}/PNet/'.format(path_root),
+        '{}/RNet/'.format(path_root),
+        '{}/ONet'.format(path_root)
+    ]
+    batch_size = config.batches
+    PNet = FcnDetector(P_Net, model_path[0])
+    detectors[0] = PNet
+
+    if test_mode in ["RNet", "ONet"]:
+        RNet = Detector(R_Net, 24, batch_size[1], model_path[1])
+        detectors[1] = RNet
+
+    if test_mode == "ONet":
+        ONet = Detector(O_Net, 48, batch_size[2], model_path[2])
+        detectors[2] = ONet
+
+    mtcnn_detector = MtcnnDetector(detectors=detectors, min_face_size=min_face_size,
+                                   stride=stride, threshold=thresh)
+    return mtcnn_detector
 
 
 def align_face(img, mtcnn_detector):
@@ -51,100 +77,97 @@ def align_face(img, mtcnn_detector):
         return None, None, None
 
 
-def load_align():
-    thresh = config.thresh
-    min_face_size = config.min_face
-    stride = config.stride
-    test_mode = config.test_mode
-    detectors = [None, None, None]
-    # 模型放置位置
-    model_path = ['../align/model/PNet/', '../align/model/RNet/', '../align/model/ONet']
-    batch_size = config.batches
-    PNet = FcnDetector(P_Net, model_path[0])
-    detectors[0] = PNet
+class FaceRecognizer:
+    def __init__(self, path_h5, path_root, path_model):
+        self.threshold = 0.002  # 识别人脸阈值
+        f = h5py.File(path_h5, 'r')
+        class_arr = f['class_name'][:]
+        self.class_arr = [k.decode() for k in class_arr]
+        self.emb_arr = f['embeddings'][:]
+        self.cap = cv2.VideoCapture(0)
+        self.mtcnn_detector = load_align(path_root)
 
-    if test_mode in ["RNet", "ONet"]:
-        RNet = Detector(R_Net, 24, batch_size[1], model_path[1])
-        detectors[1] = RNet
+        tf.Graph().as_default()
+        self.sess = tf.Session()
+        load_model('{}/'.format(path_model), sess=self.sess)
+        self.images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
+        self.embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
+        self.phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
+        self.keep_probability_placeholder = tf.get_default_graph().get_tensor_by_name('keep_probability:0')
 
-    if test_mode == "ONet":
-        ONet = Detector(O_Net, 48, batch_size[2], model_path[2])
-        detectors[2] = ONet
+    def get_one_shot_normal(self):
+        ret, frame = self.cap.read()
+        if ret:
+            img = frame
+        else:
+            img = frame
+        return ret, img
 
-    mtcnn_detector = MtcnnDetector(detectors=detectors, min_face_size=min_face_size,
-                                   stride=stride, threshold=thresh)
-    return mtcnn_detector
+    def get_one_shot(self):
+        # TODO
+        t1 = cv2.getTickCount()
+        ret, frame = self.get_one_shot_normal()
+        img, scaled_arr, bb_arr = align_face(frame, self.mtcnn_detector)
+        if scaled_arr is not None:
+            feed_dict = {
+                self.images_placeholder: scaled_arr,
+                self.phase_train_placeholder: False,
+                self.keep_probability_placeholder: 1.0
+            }
+            embs = self.sess.run(self.embeddings, feed_dict=feed_dict)
+            face_num = embs.shape[0]
+            face_class = ['Others'] * face_num
+            for i in range(face_num):
+                diff = np.mean(np.square(embs[i] - self.emb_arr), axis=1)
+                min_diff = min(diff)
+                print(min_diff)
+                if min_diff < self.threshold:
+                    index = np.argmin(diff)
+                    face_class[i] = self.class_arr[index]
+
+            t2 = cv2.getTickCount()
+            t = (t2 - t1) / cv2.getTickFrequency()
+            fps = 1.0 / t
+            for i in range(face_num):
+                bbox = bb_arr[i]
+
+                cv2.putText(img, '{}'.format(face_class[i]),
+                            (bbox[0], bbox[1] - 2),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5, (0, 255, 0), 2)
+
+                # 画fps值
+                cv2.putText(img, '{:.4f}'.format(t) + " " + '{:.3f}'.format(fps), (10, 20),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
+        else:
+            img = frame
+        return ret, img
 
 
-def main(model_origin_flag=False):
-    # 读取对比图片的embeddings和class_name
-    f = h5py.File('../data/pictures/embeddings.h5', 'r')
-    class_arr = f['class_name'][:]
-    class_arr = [k.decode() for k in class_arr]
-    emb_arr = f['embeddings'][:]
-    cap = cv2.VideoCapture(0)
+def main(output=False):
+    path_h5 = '../data/pictures/embeddings.h5'
+    path_root = '../align/model'
+    path_model = '../data/model_origin'
+    recognizer = FaceRecognizer(path_h5, path_root, path_model)
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     path = '../data/output'
     if not os.path.exists(path):
         os.mkdir(path)
     out = cv2.VideoWriter(path + '/out.mp4', fourcc, 10, (640, 480))
-    mtcnn_detector = load_align()
-    with tf.Graph().as_default():
-        with tf.Session() as sess:
-            if model_origin_flag:
-                load_model('../data/model_origin/')
-            else:
-                load_model('../data/model/')
-            images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
-            embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
-            phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
-            keep_probability_placeholder = tf.get_default_graph().get_tensor_by_name('keep_probability:0')
-            while True:
-                t1 = cv2.getTickCount()
-                ret, frame = cap.read()
-                if ret:
-                    img, scaled_arr, bb_arr = align_face(frame, mtcnn_detector)
-                    if scaled_arr is not None:
-                        feed_dict = {images_placeholder: scaled_arr, phase_train_placeholder: False,
-                                     keep_probability_placeholder: 1.0}
-                        embs = sess.run(embeddings, feed_dict=feed_dict)
-                        face_num = embs.shape[0]
-                        face_class = ['Others'] * face_num
-                        for i in range(face_num):
-                            diff = np.mean(np.square(embs[i] - emb_arr), axis=1)
-                            min_diff = min(diff)
-                            print(min_diff)
-                            if min_diff < THRED:
-                                index = np.argmin(diff)
-                                face_class[i] = class_arr[index]
-
-                        t2 = cv2.getTickCount()
-                        t = (t2 - t1) / cv2.getTickFrequency()
-                        fps = 1.0 / t
-                        for i in range(face_num):
-                            bbox = bb_arr[i]
-
-                            cv2.putText(img, '{}'.format(face_class[i]),
-                                        (bbox[0], bbox[1] - 2),
-                                        cv2.FONT_HERSHEY_SIMPLEX,
-                                        0.5, (0, 255, 0), 2)
-
-                            # 画fps值
-                            cv2.putText(img, '{:.4f}'.format(t) + " " + '{:.3f}'.format(fps), (10, 20),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 255), 2)
-                    else:
-                        img = frame
-
-                    a = out.write(img)
-                    cv2.imshow("result", img)
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
-                else:
-                    break
-            cap.release()
-            out.release()
-            cv2.destroyAllWindows()
+    while True:
+        ret, img = recognizer.get_one_shot()
+        if ret:
+            if output:
+                out.write(img)
+            cv2.imshow("result", img)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        else:
+            break
+    recognizer.cap.release()
+    out.release()
+    cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
-    main(model_origin_flag=True)
+    main()

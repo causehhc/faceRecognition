@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DataWindow</class>
+ <widget class="QMainWindow" name="DataWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>999</width>
+    <height>841</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>DataWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QGroupBox" name="groupBox_database">
+        <property name="title">
+         <string>DataBase</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <item>
+          <widget class="QGroupBox" name="groupBox_personinfo">
+           <property name="title">
+            <string>person_info</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_2">
+            <item row="0" column="0">
+             <widget class="QTableWidget" name="tableWidget_person_info">
+              <property name="textElideMode">
+               <enum>Qt::ElideRight</enum>
+              </property>
+              <property name="showGrid">
+               <bool>true</bool>
+              </property>
+              <property name="sortingEnabled">
+               <bool>false</bool>
+              </property>
+              <property name="columnCount">
+               <number>5</number>
+              </property>
+              <column>
+               <property name="text">
+                <string>PID</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>PName</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>PSex</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>PImgID</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>PPhone</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox_checklog">
+           <property name="title">
+            <string>check_log</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_3">
+            <item row="0" column="0">
+             <widget class="QTableWidget" name="tableWidget_check_log">
+              <property name="columnCount">
+               <number>2</number>
+              </property>
+              <column>
+               <property name="text">
+                <string>CID</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>CTime</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QGroupBox" name="groupBox">
+          <property name="title">
+           <string>Search</string>
+          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <widget class="QComboBox" name="comboBox">
+             <item>
+              <property name="text">
+               <string>PID</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>PName</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>PSex</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>PImgID</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>PPhone</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEdit"/>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton">
+             <property name="text">
+              <string>Search</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

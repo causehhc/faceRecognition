@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 import os
-
 from recognition.align.MtcnnDetector import MtcnnDetector
 from recognition.align.detector import Detector
 from recognition.align.fcn_detector import FcnDetector
@@ -11,12 +10,13 @@ import cv2
 import h5py
 
 
-def load_model(model_dir, input_map=None):
+def load_model(model_dir, input_map=None, sess=None):
     """重载模型"""
-
     ckpt = tf.train.get_checkpoint_state(model_dir)
     saver = tf.train.import_meta_graph(ckpt.model_checkpoint_path + '.meta')
-    saver.restore(tf.get_default_session(), ckpt.model_checkpoint_path)
+    if sess is None:
+        sess = tf.get_default_session()
+    saver.restore(sess, ckpt.model_checkpoint_path)
 
 
 def align_face(path='../data/pictures/'):
