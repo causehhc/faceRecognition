@@ -7,7 +7,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import QFileDialog, QMainWindow
 from PyQt5.QtWidgets import QApplication, QMainWindow, QUndoStack, QMessageBox, QLabel
 from MainUI import Ui_MainWindow
-from recognition.run.test import FaceRecognizer
+from backend.db import MySqlHelper
+from recognition.Recognizer import FaceRecognizer
 
 
 class MainForm(QMainWindow, Ui_MainWindow):
@@ -15,13 +16,22 @@ class MainForm(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         self.setupUi(self)
 
-        path_h5 = './recognition/data/pictures/embeddings.h5'
+        path_h5 = './recognition/data/pictures'
         path_root = './recognition/align/model'
         path_model = './recognition/data/model_origin'
         self.recognizer = FaceRecognizer(path_h5, path_root, path_model)
 
+        self.sqlHelper = MySqlHelper()
+
+        # Info
+        self.pname = None
+        self.psex = None
+        self.pimgid = None
+        self.pphone = None
+
         # 摄像头
         self.is_camera_opened = False
+        self.old_face_class = None
 
         # 定时器：100ms捕获一帧
         self._timer = QtCore.QTimer(self)
@@ -30,22 +40,24 @@ class MainForm(QMainWindow, Ui_MainWindow):
 
         # connect
         self.pushButton_Camera.clicked.connect(self.func_pushButton_Camera)
-        self.pushButton_Edit.clicked.connect(self.func_pushButton_Edit)
         self.pushButton_Search.clicked.connect(self.func_pushButton_Search)
         self.pushButton_InfoRE.clicked.connect(self.func_pushButton_InfoRE)
-        self.pushButton_Shot.clicked.connect(self.func_pushButton_Shot)
+        self.pushButton_Edit.clicked.connect(self.func_pushButton_Edit)
         self.pushButton_Commit.clicked.connect(self.func_pushButton_Commit)
-        self.pushButton_ConsoleRE.clicked.connect(self.func_pushButton_ConsoleRE)
+        self.pushButton_Delete.clicked.connect(self.func_pushButton_Delete)
 
     @QtCore.pyqtSlot()
     def _queryFrame(self):
         """
         循环捕获图片
         """
-        if self.pushButton_Start.isChecked():
-            ret, self.frame = self.recognizer.get_one_shot()
-        else:
-            ret, self.frame = self.recognizer.get_one_shot_normal()
+        ret, self.frame, face_class = self.recognizer.get_one_shot(self.pushButton_Start.isChecked())
+        if self.old_face_class != face_class:
+            self.old_face_class = face_class
+            if face_class:
+                self._set_info(face_class)
+            else:
+                self.func_pushButton_InfoRE(force=True)
 
         img_rows, img_cols, channels = self.frame.shape
         bytesPerLine = channels * img_cols
@@ -54,6 +66,19 @@ class MainForm(QMainWindow, Ui_MainWindow):
         QImg = QImage(self.frame.data, img_cols, img_rows, bytesPerLine, QImage.Format_RGB888)
         Size = self.label_Camera.size()
         self.label_Camera.setPixmap(QPixmap.fromImage(QImg).scaled(Size, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+    def _get_info(self):
+        self.pname = self.lineEdit_PName.text()
+        self.psex = self.lineEdit_PSex.text()
+        self.pimgid = self.lineEdit_PImgID.text()
+        self.pphone = self.lineEdit_PPhone.text()
+
+    def _set_info(self, face_class):
+        item = self.sqlHelper.get_info(face_class)
+        self.lineEdit_PName.setText(item[0])
+        self.lineEdit_PSex.setText(item[1])
+        self.lineEdit_PImgID.setText(str(item[2]))
+        self.lineEdit_PPhone.setText(item[3])
 
     def func_pushButton_Camera(self):
         """
@@ -64,46 +89,59 @@ class MainForm(QMainWindow, Ui_MainWindow):
             self.pushButton_Camera.setText("Close")
             self._timer.start()
         else:
-            self.pushButton_Camera.setText("Open")
             self._timer.stop()
             self.label_Camera.setText("Camera")
-
-    def func_pushButton_Edit(self):
-        if self.pushButton_Edit.isChecked():
-            self.lineEdit_PName.setReadOnly(False)
-            self.lineEdit_PSex.setReadOnly(False)
-            self.lineEdit_PPhone.setReadOnly(False)
-        else:
-            self.lineEdit_PName.setReadOnly(True)
-            self.lineEdit_PSex.setReadOnly(True)
-            self.lineEdit_PPhone.setReadOnly(True)
+            self.pushButton_Camera.setText("Open")
+            if self.recognizer.commitFlag:
+                self.recognizer.save_embedding()
 
     def func_pushButton_Search(self):
         # TODO
         pass
 
-    def func_pushButton_InfoRE(self):
-        if self.pushButton_Edit.isChecked():
+    def func_pushButton_InfoRE(self, force=False):
+        if force or self.pushButton_Edit.isChecked():
+            self.pname = None
+            self.psex = None
+            self.pimgid = None
+            self.pphone = None
             self.lineEdit_PName.clear()
             self.lineEdit_PSex.clear()
+            self.lineEdit_PImgID.clear()
             self.lineEdit_PPhone.clear()
 
-    def func_pushButton_Shot(self):
-        if self.is_camera_opened:
-            self._timer.stop()
-            img_rows, img_cols, channels = self.frame.shape
-            bytesPerLine = channels * img_cols
-
-            cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB, self.frame)
-            QImg = QImage(self.frame.data, img_cols, img_rows, bytesPerLine, QImage.Format_RGB888)
-            Size = self.label_Camera.size()
-            self.label_Camera.setPixmap(QPixmap.fromImage(QImg).scaled(Size, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+    def func_pushButton_Edit(self):
+        if self.pushButton_Edit.isChecked():
+            flag = False
+        else:
+            flag = True
+        self.lineEdit_PName.setReadOnly(flag)
+        self.lineEdit_PSex.setReadOnly(flag)
+        self.lineEdit_PImgID.setReadOnly(flag)
+        self.lineEdit_PPhone.setReadOnly(flag)
 
     def func_pushButton_Commit(self):
-        # TODO
-        pass
+        self._timer.stop()
+        if self.is_camera_opened and self.pushButton_Start.isChecked():
+            self._get_info()
+            if None not in [self.pname, self.psex, self.pimgid, self.pphone]:
+                ret, frame, face_class = self.recognizer.get_one_shot(True, imgID=self.pimgid)
+                self.sqlHelper.update_info([self.pname, self.psex, self.pimgid, self.pphone], face_class)
+                self.func_pushButton_InfoRE()
+                self.pushButton_Edit.setChecked(False)
+                self.func_pushButton_Edit()
+        self._timer.start()
 
-    def func_pushButton_ConsoleRE(self):
+    def func_pushButton_Delete(self):
+        self._timer.stop()
+        if self.is_camera_opened and self.pushButton_Start.isChecked():
+            self._get_info()
+            if None not in [self.pname, self.psex, self.pimgid, self.pphone]:
+                ret, frame, face_class = self.recognizer.get_one_shot(True, imgID=self.pimgid, delete=True)
+                self.sqlHelper.del_info([self.pname, self.psex, self.pimgid, self.pphone])
+                self.func_pushButton_InfoRE()
+                self.pushButton_Edit.setChecked(False)
+                self.func_pushButton_Edit()
         self._timer.start()
 
 
@@ -111,4 +149,7 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     win = MainForm()
     win.show()
-    sys.exit(app.exec_())
+    res = app.exec_()
+    if win.recognizer.commitFlag:
+        win.recognizer.save_embedding()
+    sys.exit(res)
