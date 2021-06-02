@@ -57,7 +57,8 @@ class MainForm(QMainWindow, Ui_MainWindow):
             if face_class:
                 self._set_info(face_class)
             else:
-                self.func_pushButton_InfoRE(force=True)
+                if not self.pushButton_Edit.isChecked():
+                    self.func_pushButton_InfoRE(force=True)
 
         img_rows, img_cols, channels = self.frame.shape
         bytesPerLine = channels * img_cols
@@ -74,11 +75,12 @@ class MainForm(QMainWindow, Ui_MainWindow):
         self.pphone = self.lineEdit_PPhone.text()
 
     def _set_info(self, face_class):
-        item = self.sqlHelper.get_info(face_class)
-        self.lineEdit_PName.setText(item[0])
-        self.lineEdit_PSex.setText(item[1])
-        self.lineEdit_PImgID.setText(str(item[2]))
-        self.lineEdit_PPhone.setText(item[3])
+        if not self.pushButton_Edit.isChecked():
+            item = self.sqlHelper.get_info(face_class)
+            self.lineEdit_PName.setText(item[0])
+            self.lineEdit_PSex.setText(item[1])
+            self.lineEdit_PImgID.setText(str(item[2]))
+            self.lineEdit_PPhone.setText(item[3])
 
     def func_pushButton_Camera(self):
         """
@@ -112,6 +114,7 @@ class MainForm(QMainWindow, Ui_MainWindow):
 
     def func_pushButton_Edit(self):
         if self.pushButton_Edit.isChecked():
+            self.func_pushButton_InfoRE()
             flag = False
         else:
             flag = True

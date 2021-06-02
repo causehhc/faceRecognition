@@ -142,7 +142,7 @@ class FaceRecognizer:
                         if face_class_res is not None:  # 数据更新
                             index = self.class_arr.index(face_class_res)
                             self.class_arr.remove(face_class_res)
-                            if self.emb_arr.shape[0] == 1:
+                            if delete and self.emb_arr.shape[0] == 1:
                                 self.emb_arr = None
                             else:
                                 self.emb_arr = np.delete(self.emb_arr, index, axis=0)
