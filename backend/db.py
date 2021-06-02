@@ -30,13 +30,28 @@ class MySqlHelper:
         self._db = MySession(session)
 
     def get_test(self):
-        temp = self._db.session.query(Person_info).all()
-        for item in temp:
-            print(item.PID, item.PName)
+        now = datetime.datetime.now()
+        item_list = self._db.session.query(Check_log).all()
+        item = item_list[0]
+        print((now-item.CTime).days)
 
     def clear(self):
         self._db.session.query(Person_info).delete()
         self._db.session.commit()
+
+    def get_info_all(self):
+        item_list1 = self._db.session.query(Person_info).all()
+        item_list2 = self._db.session.query(Check_log).all()
+        res1 = []
+        res2 = []
+        temp_dict = {}
+        for item in item_list1:
+            temp_dict[item.PID] = item
+            res1.append([item.PID, item.PName, item.PSex, item.PImgID, item.PPhone])
+        for item in item_list2:
+            temp = temp_dict[item.PID]
+            res2.append([temp.PName, temp.PSex, temp.PImgID, temp.PPhone, str(item.CTime)])
+        return res1, res2
 
     def add_info(self, info_list):
         item = Person_info()
@@ -59,6 +74,53 @@ class MySqlHelper:
         if item is not None:
             return [item.PName, item.PSex, item.PImgID, item.PPhone]
         return None
+
+    def get_log(self, category, text):
+        if text != '':
+            if category == 'PID':
+                item_list = self._db.session.query(Person_info).filter_by(PID=text).all()
+            elif category == 'PName':
+                item_list = self._db.session.query(Person_info).filter_by(PName=text).all()
+            elif category == 'PSex':
+                item_list = self._db.session.query(Person_info).filter_by(PSex=text).all()
+            elif category == 'PImgID':
+                item_list = self._db.session.query(Person_info).filter_by(PImgID=text).all()
+            elif category == 'PPhone':
+                item_list = self._db.session.query(Person_info).filter_by(PPhone=text).all()
+            else:
+                item_list = None
+        else:
+            item_list = self._db.session.query(Person_info).all()
+
+        res = []
+        for item in item_list:
+            item_log_list = self._db.session.query(Check_log).filter_by(PID=item.PID).all()
+            for item_log in item_log_list:
+                res.append([item.PName, item.PSex, item.PImgID, item.PPhone, str(item_log.CTime)])
+        return res
+
+    def get_log_time(self, category):
+        res = []
+        now = datetime.datetime.now()
+        item_list = self._db.session.query(Check_log).all()
+        for item in item_list:
+            if category == 'All':
+                pass
+            elif category == 'Day':
+                if (now - item.CTime).days >= 1:
+                    continue
+            elif category == 'Week':
+                if (now - item.CTime).days >= 7:
+                    continue
+            elif category == 'Month':
+                if (now - item.CTime).days >= 30:
+                    continue
+            else:
+                pass
+
+            item_info = self._db.session.query(Person_info).filter_by(PID=item.PID).first()
+            res.append([item_info.PName, item_info.PSex, item_info.PImgID, item_info.PPhone, str(item.CTime)])
+        return res
 
     def change_info(self, info_list):
         item = self._db.session.query(Person_info).filter_by(PID=info_list[2]).first()
@@ -98,13 +160,10 @@ class MySqlHelper:
 
 
 if __name__ == '__main__':
-    ISOTIMEFORMAT = '%Y-%m-%d %H:%M:%S'
     h = MySqlHelper()
+    h.get_test()
     # h.clear()
     # h.add_info(['1', '1', '1', '1'])
     # theTime = datetime.datetime.now().strftime(ISOTIMEFORMAT)
     # h.create_log(1, theTime)
-    t1 = datetime.datetime.now()
-    time.sleep(3)
-    t2 = datetime.datetime.now()
-    print((t2-t1).seconds)
+

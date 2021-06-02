@@ -1,21 +1,25 @@
 import datetime
 import sys
-
 import cv2
+
+from recognition.Recognizer import FaceRecognizer
+from backend.db import MySqlHelper
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from PyQt5.QtWidgets import QFileDialog, QMainWindow
+from PyQt5.QtWidgets import QFileDialog, QMainWindow, QTableWidgetItem
 from PyQt5.QtWidgets import QApplication, QMainWindow, QUndoStack, QMessageBox, QLabel
 from MainUI import Ui_MainWindow
-from backend.db import MySqlHelper
-from recognition.Recognizer import FaceRecognizer
+from DataUI import Ui_DataWindow
 
 
 class MainForm(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
+
+        self.sub_win = SubForm()
 
         path_h5 = './recognition/data/pictures'
         path_root = './recognition/align/model'
@@ -40,6 +44,11 @@ class MainForm(QMainWindow, Ui_MainWindow):
         self._timer.timeout.connect(self._queryFrame)
         self._timer.setInterval(100)
 
+        self._timer2 = QtCore.QTimer(self)
+        self._timer2.timeout.connect(self._flashTime)
+        self._timer2.setInterval(1000)
+        self._timer2.start()
+
         # connect
         self.pushButton_Camera.clicked.connect(self.func_pushButton_Camera)
         self.pushButton_Search.clicked.connect(self.func_pushButton_Search)
@@ -63,7 +72,7 @@ class MainForm(QMainWindow, Ui_MainWindow):
                 if face_class not in self.time_dict:
                     self.time_dict[face_class] = now
                     flag = True
-                if flag or (now - self.time_dict[face_class]).seconds > 10:  # 10s打卡周期
+                if flag or (now - self.time_dict[face_class]).seconds > 60:  # 10s打卡周期
                     self.time_dict[face_class] = now
                     self.sqlHelper.create_log(face_class, now)
                     print('打卡成功', face_class, now)
@@ -78,6 +87,11 @@ class MainForm(QMainWindow, Ui_MainWindow):
         QImg = QImage(self.frame.data, img_cols, img_rows, bytesPerLine, QImage.Format_RGB888)
         Size = self.label_Camera.size()
         self.label_Camera.setPixmap(QPixmap.fromImage(QImg).scaled(Size, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+    @QtCore.pyqtSlot()
+    def _flashTime(self):
+        now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.lineEdit_Time.setText(now)
 
     def _get_info(self):
         self.pname = self.lineEdit_PName.text()
@@ -109,8 +123,8 @@ class MainForm(QMainWindow, Ui_MainWindow):
                 self.recognizer.save_embedding()
 
     def func_pushButton_Search(self):
-        # TODO
-        pass
+        self.sub_win.init_data()
+        self.sub_win.show()
 
     def func_pushButton_InfoRE(self, force=False):
         if force or self.pushButton_Edit.isChecked():
@@ -136,7 +150,7 @@ class MainForm(QMainWindow, Ui_MainWindow):
 
     def func_pushButton_Commit(self):
         self._timer.stop()
-        if self.is_camera_opened and self.pushButton_Start.isChecked():
+        if self.is_camera_opened and self.pushButton_Start.isChecked() and self.pushButton_Edit.isChecked():
             self._get_info()
             if None not in [self.pname, self.psex, self.pimgid, self.pphone]:
                 ret, frame, face_class = self.recognizer.get_one_shot(True, imgID=self.pimgid)
@@ -157,6 +171,48 @@ class MainForm(QMainWindow, Ui_MainWindow):
                 self.pushButton_Edit.setChecked(False)
                 self.func_pushButton_Edit()
         self._timer.start()
+
+
+class SubForm(QMainWindow, Ui_DataWindow):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setupUi(self)
+
+        self.sqlHelper = MySqlHelper()
+
+        # connect
+        self.pushButton_create.clicked.connect(self.func_pushButton_create)
+        self.pushButton_search.clicked.connect(self.func_pushButton_search)
+
+    def init_data(self):
+        item_list1, item_list2 = self.sqlHelper.get_info_all()
+        self.tableWidget_person_info.setRowCount(len(item_list1))
+        for i in range(len(item_list1)):
+            for j in range(len(item_list1[i])):
+                self.tableWidget_person_info.setItem(i, j, QTableWidgetItem(item_list1[i][j]))
+        self.tableWidget_report.setRowCount(len(item_list2))
+        for i in range(len(item_list2)):
+            for j in range(len(item_list2[i])):
+                self.tableWidget_report.setItem(i, j, QTableWidgetItem(item_list2[i][j]))
+
+    def func_pushButton_create(self):
+        category = self.comboBox_table.currentText()
+        item_list = self.sqlHelper.get_log_time(category)
+        self.tableWidget_report.setRowCount(0)
+        self.tableWidget_report.setRowCount(len(item_list))
+        for i in range(len(item_list)):
+            for j in range(len(item_list[i])):
+                self.tableWidget_report.setItem(i, j, QTableWidgetItem(item_list[i][j]))
+
+    def func_pushButton_search(self):
+        category = self.comboBox_search.currentText()
+        text = self.lineEdit_search.text()
+        item_list = self.sqlHelper.get_log(category, text)
+        self.tableWidget_report.setRowCount(0)
+        self.tableWidget_report.setRowCount(len(item_list))
+        for i in range(len(item_list)):
+            for j in range(len(item_list[i])):
+                self.tableWidget_report.setItem(i, j, QTableWidgetItem(item_list[i][j]))
 
 
 if __name__ == '__main__':
