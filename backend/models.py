@@ -7,14 +7,15 @@ Base = declarative_base()
 
 class Person_info(Base):
     __tablename__ = 'person_info'
-    PID = Column(Integer(), primary_key=True)
+    PID = Column(String(190), primary_key=True)
     PName = Column(String(190))
     PSex = Column(String(190))
-    PImgID = Column(Integer())
+    PImgID = Column(String(190))
     PPhone = Column(String(190))
 
 
 class Check_log(Base):
     __tablename__ = 'check_log'
-    CID = Column(Integer(), primary_key=True)
+    CID = Column(String(190), primary_key=True)
+    PID = Column(String(190))
     CTime = Column(DateTime())

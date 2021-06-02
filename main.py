@@ -1,3 +1,4 @@
+import datetime
 import sys
 
 import cv2
@@ -32,6 +33,7 @@ class MainForm(QMainWindow, Ui_MainWindow):
         # 摄像头
         self.is_camera_opened = False
         self.old_face_class = None
+        self.time_dict = {}
 
         # 定时器：100ms捕获一帧
         self._timer = QtCore.QTimer(self)
@@ -52,10 +54,19 @@ class MainForm(QMainWindow, Ui_MainWindow):
         循环捕获图片
         """
         ret, self.frame, face_class = self.recognizer.get_one_shot(self.pushButton_Start.isChecked())
-        if self.old_face_class != face_class:
+        if self.old_face_class != face_class:  # 优化刷新
             self.old_face_class = face_class
             if face_class:
                 self._set_info(face_class)
+                now = datetime.datetime.now()
+                flag = False
+                if face_class not in self.time_dict:
+                    self.time_dict[face_class] = now
+                    flag = True
+                if flag or (now - self.time_dict[face_class]).seconds > 10:  # 10s打卡周期
+                    self.time_dict[face_class] = now
+                    self.sqlHelper.create_log(face_class, now)
+                    print('打卡成功', face_class, now)
             else:
                 if not self.pushButton_Edit.isChecked():
                     self.func_pushButton_InfoRE(force=True)

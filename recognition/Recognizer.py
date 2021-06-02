@@ -73,7 +73,7 @@ def align_face(img, mtcnn_detector):
         scaled_arr = np.array(scaled_arr)
         return img, scaled_arr, bb_arr
     else:
-        print('找不到脸 ')
+        # print('找不到脸 ')
         return None, None, None
 
 

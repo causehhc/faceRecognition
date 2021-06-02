@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from flask_sqlalchemy import SQLAlchemy
 from backend.models import *
 import time
-from datetime import datetime
+import datetime
 
 
 class MySession:
@@ -33,6 +33,10 @@ class MySqlHelper:
         temp = self._db.session.query(Person_info).all()
         for item in temp:
             print(item.PID, item.PName)
+
+    def clear(self):
+        self._db.session.query(Person_info).delete()
+        self._db.session.commit()
 
     def add_info(self, info_list):
         item = Person_info()
@@ -83,10 +87,24 @@ class MySqlHelper:
             self._db.session.add(item)
         self._db.session.commit()
 
+    def create_log(self, face_class, t):
+        item = Check_log()
+        item.CID = uuid.uuid1()
+        item.PID = face_class
+        ISOTIMEFORMAT = '%Y-%m-%d %H:%M:%S'
+        item.CTime = t.strftime(ISOTIMEFORMAT)
+        self._db.session.add(item)
+        self._db.session.commit()
+
 
 if __name__ == '__main__':
+    ISOTIMEFORMAT = '%Y-%m-%d %H:%M:%S'
     h = MySqlHelper()
-    # h.get_test()
-    # h.add_info(['1', '1', 1, '1'])
-    res = h.get_info('2')
-    print(res)
+    # h.clear()
+    # h.add_info(['1', '1', '1', '1'])
+    # theTime = datetime.datetime.now().strftime(ISOTIMEFORMAT)
+    # h.create_log(1, theTime)
+    t1 = datetime.datetime.now()
+    time.sleep(3)
+    t2 = datetime.datetime.now()
+    print((t2-t1).seconds)
