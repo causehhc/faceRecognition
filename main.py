@@ -76,7 +76,8 @@ class MainForm(QMainWindow, Ui_MainWindow):
                 if flag or (now - self.time_dict[face_class]).seconds > 60:  # 10s打卡周期
                     self.time_dict[face_class] = now
                     self.sqlHelper.create_log(face_class, now)
-                    print('打卡成功', face_class, now)
+                    self.lineEdit_State.setText("Check in successfully, {}, {}".format(face_class, now))
+                    print("Check in successfully, {}, {}".format(face_class, now))
             else:
                 if not self.pushButton_Edit.isChecked():
                     self.func_pushButton_InfoRE(force=True)
@@ -93,6 +94,16 @@ class MainForm(QMainWindow, Ui_MainWindow):
     def _flashTime(self):
         now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.lineEdit_Time.setText(now)
+
+        if self.is_camera_opened:
+            state = "Camera_open"
+            if self.pushButton_Start.isChecked():
+                state = "Face_running..."
+        else:
+            state = "Camera_close"
+        if self.pushButton_Edit.isChecked():
+            state = "Edit..."
+        self.lineEdit_State.setText(state)
 
     def _get_info(self):
         self.pname = self.lineEdit_PName.text()
@@ -120,8 +131,6 @@ class MainForm(QMainWindow, Ui_MainWindow):
             self._timer.stop()
             self.label_Camera.setText("Camera")
             self.pushButton_Camera.setText("Open")
-            if self.recognizer.commitFlag:
-                self.recognizer.save_embedding()
 
     def func_pushButton_Search(self):
         self.sub_win.init_data()
