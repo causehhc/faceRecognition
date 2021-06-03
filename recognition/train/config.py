@@ -9,9 +9,11 @@ validation_set_split_ratio = 0.05
 # 一个类别至少含有图片数量
 min_nrof_val_images_per_class = 0.0
 # 数据存放位置
-data_dir = '../data/dataSet/casia_mtcnn_182'
+data_dir = '../data/dataSet/CASIA-WebFace'
 
-batch_size = 90
+# TODO
+# batch_size = 90
+batch_size = 45
 # dropout的保留率
 keep_probability = 0.8
 # 网络输出层维度

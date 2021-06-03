@@ -208,4 +208,6 @@ def create_input_pipeline(input_queue, image_size, nrof_preprocess_threads, bath
 def random_rotate_image(image):
     """随机翻转图片"""
     angle = np.random.uniform(low=-10.0, high=10.0)
-    return misc.imrotate(image, angle, 'bicubic')
+    # TODO
+    # return misc.imrotate(image, angle, 'bicubic')
+    return image

@@ -23,6 +23,7 @@ class MainForm(QMainWindow, Ui_MainWindow):
 
         path_h5 = './recognition/data/pictures'
         path_root = './recognition/align/model'
+        # path_model = './recognition/data/model'
         path_model = './recognition/data/model_origin'
         self.recognizer = FaceRecognizer(path_h5, path_root, path_model)
 
