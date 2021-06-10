@@ -23,7 +23,9 @@ face
 [MTCNN](https://kpzhang93.github.io/MTCNN_face_detection_alignment/index.html) 被证明是在复杂场景中非常有效的面部标志检测器。  
 模型主要通过三层网络级联(PNet, RNet, ONet)来实现对人脸更精确的检测, 论文中的示例如下：
 ![avatar](./pic/1.jpg)
+
 ![avatar](./pic/2.jpg)
+
 三层模型依次训练，其中详细说明参考[tensorflow-MTCNN](https://github.com/LeslieZhoa/tensorflow-MTCNN) 。
 ### 2、模型训练
 #### 2.1、损失函数
@@ -38,12 +40,14 @@ triplet_loss的公式如下：
 ![avatar](./pic/3.jpg)
 
 但是这样训练三元组模型收敛极慢，[A Discriminative Feature Learning Approach for Deep Face Recognition](https://link.springer.com/chapter/10.1007%2F978-3-319-46478-7_31) 提出的center_loss可加速模型的收敛。  
-公式如下：
+公式如下：  
 ![avatar](./pic/5.jpg)
+
 代码中的损失函数采用softmax交叉熵和center_loss相结合。  
 softmax交叉熵为了使类间距离变大，center_loss是计算某一图片与该类别图片embeddings的均值的损失，为了使类间距离变小。  
 论文中采取minst实验来说明损失函数的功能，如下图所示：  
 ![avatar](./pic/4.jpg)
+
 在实际训练中并不是遍历整个数据集来求取某类别center的embeddings，而是只针对每一个batch中出现的类别的center通过batch内相同类别的图像embeddings来进行一定学习率的更新，未出现该批次的类别的center不进行更新。  
 
 #### 2.2、优化器
@@ -51,8 +55,11 @@ softmax交叉熵为了使类间距离变大，center_loss是计算某一图片�
 除了像 Adadelta 和 RMSprop 一样存储了过去梯度的平方 vt 的指数衰减平均值 ，也像 momentum 一样保持了过去梯度 mt 的指数衰减平均值。  
 梯度更新规则为：  
 ![avatar](./pic/6.jpg)
+
 ## 三、功能介绍
 ### 1、录入&检测&考勤打卡
 ![avatar](./pic/rt.jpg)
+
 ### 2、检索
 ![avatar](./pic/log.jpg)
+
