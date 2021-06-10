@@ -26,6 +26,7 @@ face
 ![avatar](./pic/2.jpg)
 三层模型依次训练，其中详细说明参考[tensorflow-MTCNN](https://github.com/LeslieZhoa/tensorflow-MTCNN) 。
 ### 2、模型训练
+#### 2.1、损失函数
 该部分参考FaceNet的结构，即使用inception_resnet_v1作为模型主体架构，输出一定维度的图片embeddings。  
 FaceNet的损失函数采用的是triplet_loss，即对于某张训练图片img,再选取一张同一类别一张图作为pos，选取不同类别的一张图作为neg。  
 - img的embeddings与pos的embeddings的平方和作为pos_dist
@@ -45,6 +46,11 @@ softmax交叉熵为了使类间距离变大，center_loss是计算某一图片�
 ![avatar](./pic/4.jpg)
 在实际训练中并不是遍历整个数据集来求取某类别center的embeddings，而是只针对每一个batch中出现的类别的center通过batch内相同类别的图像embeddings来进行一定学习率的更新，未出现该批次的类别的center不进行更新。  
 
+#### 2.2、优化器
+优化器采用Adam(Adaptive Moment Estimation)，这个算法是另一种计算每个参数的自适应学习率的方法，相当于 RMSprop + Momentum。  
+除了像 Adadelta 和 RMSprop 一样存储了过去梯度的平方 vt 的指数衰减平均值 ，也像 momentum 一样保持了过去梯度 mt 的指数衰减平均值。  
+梯度更新规则为：  
+![avatar](./pic/6.jpg)
 ## 三、功能介绍
 ### 1、录入&检测&考勤打卡
 ![avatar](./pic/rt.jpg)
