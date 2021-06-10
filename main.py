@@ -1,4 +1,5 @@
 import datetime
+import os
 import sys
 import cv2
 
@@ -19,7 +20,7 @@ class MainForm(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         self.setupUi(self)
 
-        self.sub_win = SubForm()
+
 
         path_h5 = './recognition/data/pictures'
         path_root = './recognition/align/model'
@@ -28,6 +29,11 @@ class MainForm(QMainWindow, Ui_MainWindow):
         self.recognizer = FaceRecognizer(path_h5, path_root, path_model)
 
         self.sqlHelper = MySqlHelper()
+
+        if not os.path.exists("{}/embeddings.h5".format(path_h5)):
+            self.sqlHelper.clear()
+
+        self.sub_win = SubForm(self.sqlHelper)
 
         # Info
         self.pname = None
@@ -184,11 +190,11 @@ class MainForm(QMainWindow, Ui_MainWindow):
 
 
 class SubForm(QMainWindow, Ui_DataWindow):
-    def __init__(self, parent=None):
+    def __init__(self, sqlHelper, parent=None):
         super().__init__(parent)
         self.setupUi(self)
 
-        self.sqlHelper = MySqlHelper()
+        self.sqlHelper = sqlHelper
 
         # connect
         self.pushButton_create.clicked.connect(self.func_pushButton_create)
