@@ -28,8 +28,8 @@ face
 
 三层模型依次训练，其中详细说明参考[tensorflow-MTCNN](https://github.com/LeslieZhoa/tensorflow-MTCNN) 。
 ### 2、模型训练
-#### 2.1、损失函数
-该部分参考FaceNet的结构，即使用inception_resnet_v1作为模型主体架构，输出一定维度的图片embeddings。  
+该部分参考FaceNet的结构，即使用inception_resnet_v1作为模型主体架构，输出一定维度的图片embeddings。 
+#### 2.1、损失函数 
 FaceNet的损失函数采用的是triplet_loss，即对于某张训练图片img,再选取一张同一类别一张图作为pos，选取不同类别的一张图作为neg。  
 - img的embeddings与pos的embeddings的平方和作为pos_dist
 - img的embeddings和neg的embeddings的平方和作为neg_dist
