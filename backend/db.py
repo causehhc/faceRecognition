@@ -132,7 +132,7 @@ class MySqlHelper:
         self._db.session.commit()
 
     def update_info(self, info_list, face_class):
-        if info_list[2] != face_class:
+        if info_list[2] != face_class and face_class is not None:
             item = self._db.session.query(Person_info).filter_by(PID=face_class).first()
             item.PID = info_list[2]
             item.PName = info_list[0]

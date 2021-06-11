@@ -20,8 +20,6 @@ class MainForm(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         self.setupUi(self)
 
-
-
         path_h5 = './recognition/data/pictures'
         path_root = './recognition/align/model'
         # path_model = './recognition/data/model'

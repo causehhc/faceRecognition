@@ -17,6 +17,21 @@ face
 └─ sql  # SQL语句
        └─ comprehensive_design_3.sql
 ```
+data文件结构：  
+[CASIA-WebFace](https://drive.google.com/file/d/1Of_EVz-yHV7QVWQGihYfvtny9Ne8qXVz/view)  
+[model_origin](https://drive.google.com/file/d/1P342tGMLar3X9xhKO6w3T9eug-I1hC2d/view?usp=sharing)
+```text
+data
+├─ dataSet
+│    └─ [CASIA-WebFace]
+├─ graph  # *训练时自动生成
+├─ model  # 自行训练的模型存放位置
+├─ [model_origin]   # 已经训练好模型
+├─ output  # 运行过程中的视频输出位置（可选项）
+└─ pictures
+       ├─ *.jpg  # 以文件名为标注的人脸图片（只用于单元测试）
+       └─ embeddings.h5  # *运行时自动生成
+```
 ## 二、概要设计
 系统主要通过人脸识别算法维护一个数据库，完成人脸识别考勤的目的。
 ## 三、详细设计
